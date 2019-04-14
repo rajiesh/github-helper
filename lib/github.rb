@@ -15,13 +15,11 @@ module GitHub
       issues = @client.issues("#{@user}/#{@repo}", labels: label)
       pull_request_numbers(issues).each do |pr_number|
         files_modified_in(pr_number).each do |file_modified|
-          change = []
-          lines_added = file_modified[:patch].select { |line| line if line.start_with?('+') }
-
-          change << "{lines_added: #{lines_added}}"
-          change << "{file_name: #{file_modified[:filename]}}"
-          change << "{raw_url: #{file_modified[:raw_url]}}"
-          change << "{contents_url: #{file_modified[:contents_url]}}"
+          change = {}
+          change[:lines_added] = file_modified[:patch].split("\n").select { |line| line if line.start_with?('+') }
+          change[:file_name] = file_modified[:filename]
+          change[:raw_url] = file_modified[:raw_url]
+          change[:contents_url] = file_modified[:contents_url]
           changes << change
         end
       end
@@ -35,8 +33,8 @@ module GitHub
     end
 
     def files_modified_in(pr_number)
-      commit_sha = client.pull("#{@user}/#{@repo}", pr_number)[:merge_commit_sha]
-      client.commit("#{@user}/#{@repo}", commit_sha)[:files]
+      commit_sha = @client.pull("#{@user}/#{@repo}", pr_number)[:merge_commit_sha]
+      @client.commit("#{@user}/#{@repo}", commit_sha)[:files]
     end
   end
 end
