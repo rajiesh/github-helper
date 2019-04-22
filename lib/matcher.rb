@@ -1,29 +1,39 @@
 module Matcher
-  class Test
-    attr_accessor :test_change
+  module Test
+    class UnitTest
 
-    def match?(change)
-      @test_change = change
-      return 'New tests added' if file_match? && method_match?
-      return 'Tests modified' if file_match? && !method_match?
-      'No unit test change'
+      METHOD_PATTERN = [/.*Test/].freeze
+      FILE_PATTERN = [/.*Test.java/].freeze
+
+      attr_accessor :all_changes
+
+      def initialize(changes)
+        @all_changes = changes
+      end
+
+      def matches
+        @all_changes.select do |change|
+          unit_test_change = {}
+          next unless file_match?(change)
+          unit_test_change[:file_name] = change[:file_name]
+          unit_test_change[:tests_added] = method_matches(change)
+          unit_test_change[:raw_url] = change[:raw_url]
+          unit_test_change[:contents_url] = change[:contents_url]
+          return unit_test_change
+        end
+      end
+
+      def file_match?(change)
+        return false unless change[:file_name].match(Regexp.union(FILE_PATTERN))
+        true
+      end
+
+      def method_matches(change)
+        change[:lines_added].select { |line| line if line.match(Regexp.union(METHOD_PATTERN)) }
+      end
     end
-  end
 
-  class UnitTest < Test
-    METHOD_PATTERN = ['*Test', '*'].freeze
-    FILE_PATTERN = ['*Test.java'].freeze
-
-    def file_match?
-      return false unless @test_change[:file_name].match(Regexp.union(FILE_PATTERN))
-      true
+    class IntegrationTest
     end
-
-    def method_match?
-      @test_change[:lines_added].each { |line| line if line.match(Regexp.union(METHOD_PATTERN)) }
-    end
-  end
-
-  class IntegrationTest < Test
   end
 end
