@@ -1,39 +1,51 @@
 module Matcher
-  module Test
-    class UnitTest
+  class Test
 
-      METHOD_PATTERN = [/.*Test/].freeze
-      FILE_PATTERN = [/.*Test.java/].freeze
+    def initialize(changes)
+      @all_changes = changes
+    end
 
-      attr_accessor :all_changes
-
-      def initialize(changes)
-        @all_changes = changes
-      end
-
-      def matches
-        @all_changes.select do |change|
-          unit_test_change = {}
-          next unless file_match?(change)
-          unit_test_change[:file_name] = change[:file_name]
-          unit_test_change[:tests_added] = method_matches(change)
-          unit_test_change[:raw_url] = change[:raw_url]
-          unit_test_change[:contents_url] = change[:contents_url]
-          return unit_test_change
-        end
-      end
-
-      def file_match?(change)
-        return false unless change[:file_name].match(Regexp.union(FILE_PATTERN))
-        true
-      end
-
-      def method_matches(change)
-        change[:lines_added].select { |line| line if line.match(Regexp.union(METHOD_PATTERN)) }
+    def matches
+      @all_changes.select do |change|
+        test_change = {}
+        next unless file_match?(change)
+        test_change[:file_name] = change[:file_name]
+        test_change[:tests_added] = method_matches(change)
+        test_change[:raw_url] = change[:raw_url]
+        test_change[:contents_url] = change[:contents_url]
+        test_change
       end
     end
 
-    class IntegrationTest
+    private
+
+    def file_match?(change)
+      return false unless change[:file_name].match(Regexp.union(@file_pattern))
+      true
     end
+
+    def method_matches(change)
+      change[:lines_added].select { |line| line if line.match(Regexp.union(@method_pattern)) }
+    end
+  end
+
+  class UnitTest < Test
+
+    def initialize(changes)
+      super(changes)
+      @file_pattern = [/.*Test.java/].freeze
+      @method_pattern = [/.*Test/].freeze
+    end
+
+  end
+
+  class IntegrationTest < Test
+
+    def initialize(changes)
+      super(changes)
+      @file_pattern = [/.*IntegrationTest.java/].freeze
+      @method_pattern = [/.*Test/].freeze
+    end
+
   end
 end

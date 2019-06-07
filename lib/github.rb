@@ -12,10 +12,11 @@ module GitHub
 
     def all_changes_with_label(label)
       changes = []
-      issues = @client.issues("#{@user}/#{@repo}", labels: label)
+      issues = @client.issues("#{@user}/#{@repo}", labels: label, state: 'closed')
       pull_request_numbers(issues).each do |pr_number|
         files_modified_in(pr_number).each do |file_modified|
           change = {}
+          next if file_modified[:patch].nil?
           change[:lines_added] = file_modified[:patch].split("\n").select { |line| line if line.start_with?('+') }
           change[:file_name] = file_modified[:filename]
           change[:raw_url] = file_modified[:raw_url]
